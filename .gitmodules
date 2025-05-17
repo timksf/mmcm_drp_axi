@@ -1,0 +1,9 @@
+[submodule "BSVTools"]
+	path = BSVTools
+	url = https://github.com/timksf/BSVTools.git
+[submodule "BlueAXI"]
+	path = BlueAXI
+	url = https://github.com/timksf/BlueAXI.git
+[submodule "BlueLib"]
+	path = BlueLib
+	url = https://github.com/timksf/BlueLib.git
