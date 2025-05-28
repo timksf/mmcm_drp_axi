@@ -1,0 +1,107 @@
+package TestMain;
+
+import StmtFSM :: *;
+import Connectable :: *;
+import GetPut :: *;
+import Clocks :: *;
+
+import BlueLib :: *;
+import TestHelper :: *;
+// import MMCM_DRP_AXI :: *;
+import MMCM_DRP_FSM :: *;
+
+import GLBL :: *;
+import BUFG :: *;
+import MMCME4_ADV :: *;
+
+typedef 7 DRP_ADDR_WIDTH;
+typedef 16 DRP_DATA_WIDTH;
+
+(* synthesize *)
+module [Module] mkTestMain(TestHandler);
+
+    let print_fmt = print_mod_pre_color_t_f;
+    let print_s = print_mod_pre_color_t_s;
+
+    //required for simulation of Xilinx IP
+    let glbl <- vMkGLBL;
+
+    
+    Clock clk_200 <- mkAbsoluteClock(0, 5000);
+    Clock clk_100 <- mkAbsoluteClock(0, 10000);
+    Reset rst_200 <- mkAsyncResetFromCR(1, clk_200);
+    
+    Wire#(Bit#(1)) clkfb <- mkWire;
+    BUFG_ifc bufg <- mkBUFG(clocked_by clk_200);
+    
+    let mmcm_cfg = defaultValue;
+    mmcm_cfg.p_CLKFBOUT_MULT_F = 48;
+    mmcm_cfg.p_DIVCLK_DIVIDE = 6;
+    mmcm_cfg.p_CLKIN1_PERIOD = 5.0;
+    mmcm_cfg.p_CLKIN2_PERIOD = 10.0;
+    mmcm_cfg.p_IS_RST_INVERTED = 1;
+    mmcm_cfg.p_CLKOUT0_DIVIDE_F = 2.0;
+    
+    MMCM_DRP_FSM_ifc#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) drp_fsm <- mkMMCM4E_DRP_FSM(clocked_by clk_200, reset_by rst_200);
+    
+    MMCME4_ADV_ifc mmcm <- mkMMCM4E_ADV(
+        mmcm_cfg,
+        clk_200,
+        clk_100,
+        clk_200,
+        clk_200,
+        clocked_by clk_200,
+        reset_by drp_fsm.mmcm_fab.rst
+    );
+
+    SyncPulseIfc pStart <- mkSyncPulseFromCC(clk_200);
+    SyncPulseIfc pStopped <- mkSyncPulseToCC(clk_200, rst_200);
+        
+    //DUT -> MMCM
+    mkConnection(toGet(drp_fsm.mmcm_fab.dwe),   toPut(mmcm.dwe));
+    mkConnection(toGet(drp_fsm.mmcm_fab.den),   toPut(mmcm.den));
+    mkConnection(toGet(drp_fsm.mmcm_fab.daddr), toPut(mmcm.daddr));
+    mkConnection(toGet(drp_fsm.mmcm_fab.d_i),   toPut(mmcm.d_i));
+    //MMCM -> DUT
+    mkConnection(toGet(mmcm.drdy),              toPut(drp_fsm.mmcm_fab.drdy));
+    mkConnection(toGet(mmcm.d_o),               toPut(drp_fsm.mmcm_fab.d_o));
+    mkConnection(toGet(mmcm.locked),            toPut(drp_fsm.mmcm_fab.locked));
+
+    Stmt s = {
+        seq
+            drp_fsm.set_drp_register(DRP_Request { addr: 'h0A, data: 'h9090, mask: 'h7F7F });
+            delay(100);
+        endseq
+    };
+
+    FSM main <- mkFSM(s, clocked_by clk_200, reset_by rst_200);
+
+    //tieoff unused signals
+    rule tieoff;
+        mmcm.cddcreq(0);
+        mmcm.clkinsel(1);
+        mmcm.psen(0);
+        mmcm.psincdec(0);
+        mmcm.pwrdwn(0);
+    endrule
+
+    //connect clk feedback through BUFG
+    rule fb;
+        bufg.in(mmcm.clkfbout);
+        mmcm.clkfbin(bufg.out);
+    endrule
+    
+    rule start if(pStart.pulse());
+        main.start();
+    endrule
+
+    rule stopped if(main.done());
+        pStopped.send();
+    endrule
+
+    method go = pStart.send;
+    method done = pStopped.pulse;
+
+endmodule
+
+endpackage

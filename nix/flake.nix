@@ -18,6 +18,8 @@
                         cmake
                         bluespec
                         yosys
+                        iverilog
+                        # tk-8_5
                     ];
                 };
             }
