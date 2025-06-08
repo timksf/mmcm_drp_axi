@@ -25,14 +25,13 @@ module [Module] mkTestImport(TestHandler);
 
     Wire#(Bit#(1)) clkfb <- mkWire;
 
-    BUFG_ifc bufg <- mkBUFG(clocked_by clk_200);
-
     let mmcm_cfg = defaultValue;
     mmcm_cfg.p_CLKFBOUT_MULT_F = 48;
     mmcm_cfg.p_DIVCLK_DIVIDE = 6;
     mmcm_cfg.p_CLKIN1_PERIOD = 5.0;
     mmcm_cfg.p_CLKIN2_PERIOD = 10.0;
     mmcm_cfg.p_IS_RST_INVERTED = 1;
+    mmcm_cfg.p_CLKOUT1_DIVIDE = 15;
 
     MMCME4_ADV_ifc dut <- mkMMCM4E_ADV(
         mmcm_cfg,
@@ -43,6 +42,8 @@ module [Module] mkTestImport(TestHandler);
         clocked_by clk_200,
         reset_by mmcm_rst
     );
+
+    BUFG_ifc bufg <- mkBUFG(clocked_by dut.clkfbout);
 
     let rst <- exposeCurrentReset();
     let rst0 <- mkAsyncReset(2, rst, dut.clkout0);
@@ -61,7 +62,6 @@ module [Module] mkTestImport(TestHandler);
     endrule
 
     rule fb;
-        bufg.in(dut.clkfbout);
         dut.clkfbin(bufg.out);
     endrule
 

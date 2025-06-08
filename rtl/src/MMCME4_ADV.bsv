@@ -72,6 +72,8 @@ interface MMCME4_ADV_ifc;
     interface Clock clkout4;
     interface Clock clkout5;
     interface Clock clkout6;
+    interface Clock clkfbout;
+    interface Clock clkfboutb;
 
     method Action cddcreq(Bit#(1) i);
     method Action clkinsel(Bit#(1) i);
@@ -91,9 +93,6 @@ interface MMCME4_ADV_ifc;
     method Bit#(1)  psdone();
     method Bit#(1)  clkfbstopped();
     method Bit#(1)  clkinstopped();
-
-    method Bit#(1)  clkfbout();
-    method Bit#(1)  clkfboutb();
 
 endinterface
 
@@ -159,44 +158,69 @@ module vMkMMCME4_ADV#(
     parameter STARTUP_WAIT             = cfg.p_STARTUP_WAIT;
 
     //the default clock is only needed for the bluespec compiler?
-    default_clock clk();
-    default_reset rst (RST);
+    default_clock dclk  (DCLK);
+    default_reset rst   (RST);
     
     input_clock (CLKIN1, (*unused*) _gate) = clkin1;
     input_clock (CLKIN2, (*unused*) _gate) = clkin2;
     
-
-    input_clock (DCLK, (*unused*) _gate) = dclk;
+    // input_clock (DCLK,  (*unused*) _gate) = dclk;
     input_clock (PSCLK, (*unused*) _gate) = psclk;
 
-    output_clock clkout0   (CLKOUT0);
-    output_clock clkout0b  (CLKOUT0B);
+    output_clock clkout0    (CLKOUT0);
+    output_clock clkout0b   (CLKOUT0B);
+    output_clock clkout1    (CLKOUT1);
+    output_clock clkout1b   (CLKOUT1B);
+    output_clock clkout2    (CLKOUT2);
+    output_clock clkout2b   (CLKOUT2B);
+    output_clock clkout3    (CLKOUT3);
+    output_clock clkout3b   (CLKOUT3B);
+    output_clock clkout4    (CLKOUT4);
+    output_clock clkout5    (CLKOUT5);
+    output_clock clkout6    (CLKOUT6);
+    output_clock clkfbout   (CLKFBOUT);
+    output_clock clkfboutb  (CLKFBOUTB);
 
-    output_clock clkout1   (CLKOUT1);
-    output_clock clkout1b  (CLKOUT1B);
+    same_family(clkin1, clkout0);
+    same_family(clkin1, clkout0b);
+    same_family(clkin1, clkout1);
+    same_family(clkin1, clkout1b);
+    same_family(clkin1, clkout2);
+    same_family(clkin1, clkout2b);
+    same_family(clkin1, clkout3);
+    same_family(clkin1, clkout3b);
+    same_family(clkin1, clkout4);
+    same_family(clkin1, clkout5);
+    same_family(clkin1, clkout6);
+    same_family(clkin1, clkfbout);
+    same_family(clkin1, clkfboutb);
 
-    output_clock clkout2   (CLKOUT2);
-    output_clock clkout2b  (CLKOUT2B);
-
-    output_clock clkout3   (CLKOUT3);
-    output_clock clkout3b  (CLKOUT3B);
-
-    output_clock clkout4   (CLKOUT4);
-    output_clock clkout5   (CLKOUT5);
-    output_clock clkout6   (CLKOUT6);
+    same_family(clkin2, clkout0);
+    same_family(clkin2, clkout0b);
+    same_family(clkin2, clkout1);
+    same_family(clkin2, clkout1b);
+    same_family(clkin2, clkout2);
+    same_family(clkin2, clkout2b);
+    same_family(clkin2, clkout3);
+    same_family(clkin2, clkout3b);
+    same_family(clkin2, clkout4);
+    same_family(clkin2, clkout5);
+    same_family(clkin2, clkout6);
+    same_family(clkin2, clkfbout);
+    same_family(clkin2, clkfboutb);
 
     //input ports
-    method clkfbin(CLKFBIN) enable((*inhigh*) EN1);
-    method cddcreq(CDDCREQ) enable((*inhigh*) EN0);
-    method clkinsel(CLKINSEL) enable((*inhigh*) EN2);
-    method psen(PSEN) enable((*inhigh*) EN3);
-    method psincdec(PSINCDEC) enable((*inhigh*) EN4);
-    method pwrdwn(PWRDWN) enable((*inhigh*) EN5);
+    method clkfbin  (CLKFBIN)   enable((*inhigh*) EN1) clocked_by(clkfbout);
+    method cddcreq  (CDDCREQ)   enable((*inhigh*) EN0);
+    method clkinsel (CLKINSEL)  enable((*inhigh*) EN2);
+    method psen     (PSEN)      enable((*inhigh*) EN3);
+    method psincdec (PSINCDEC)  enable((*inhigh*) EN4);
+    method pwrdwn   (PWRDWN)    enable((*inhigh*) EN5);
     // DRP
-    method daddr(DADDR) clocked_by(dclk) enable((*inhigh*) EN6);
-    method den(DEN) clocked_by(dclk) enable((*inhigh*) EN7);
-    method d_i(DI) clocked_by(dclk) enable((*inhigh*) EN8);
-    method dwe(DWE) clocked_by(dclk) enable((*inhigh*) EN9);
+    method daddr    (DADDR)     enable((*inhigh*) EN6) clocked_by(dclk);
+    method den      (DEN)       enable((*inhigh*) EN7) clocked_by(dclk);
+    method d_i      (DI)        enable((*inhigh*) EN8) clocked_by(dclk);
+    method dwe      (DWE)       enable((*inhigh*) EN9) clocked_by(dclk);
     
     //output ports
     method (* reg *) CDDCDONE     cddcdone();
@@ -207,10 +231,10 @@ module vMkMMCME4_ADV#(
     method (* reg *) CLKFBSTOPPED clkfbstopped();
     method (* reg *) CLKINSTOPPED clkinstopped();
 
-    method CLKFBOUT clkfbout();
-    method CLKFBOUTB clkfboutb();
-
-    //ignore scheduling
+    //do not allow multiple clocks driving FB
+    schedule clkfbin C clkfbin;
+    
+    //ignore scheduling for remaining methods
     schedule(
         cddcreq,
         clkinsel,
@@ -227,10 +251,7 @@ module vMkMMCME4_ADV#(
         locked,
         psdone,
         clkfbstopped,
-        clkinstopped,
-        clkfbin,
-        clkfbout,
-        clkfboutb
+        clkinstopped
     ) CF (
         cddcreq,
         clkinsel,
@@ -247,10 +268,7 @@ module vMkMMCME4_ADV#(
         locked,
         psdone,
         clkfbstopped,
-        clkinstopped,
-        clkfbin,
-        clkfbout,
-        clkfboutb
+        clkinstopped
     );
 
 endmodule

@@ -31,9 +31,6 @@ module [Module] mkTestMain(TestHandler);
     Clock clk_100 <- mkAbsoluteClock(0, 10000);
     Reset rst_200 <- mkAsyncResetFromCR(1, clk_200);
     
-    Wire#(Bit#(1)) clkfb <- mkWire;
-    BUFG_ifc bufg <- mkBUFG(clocked_by clk_200);
-    
     let mmcm_cfg = defaultValue;
     mmcm_cfg.p_CLKFBOUT_MULT_F = 48;
     mmcm_cfg.p_DIVCLK_DIVIDE = 6;
@@ -53,6 +50,8 @@ module [Module] mkTestMain(TestHandler);
         clocked_by clk_200,
         reset_by drp_fsm.mmcm_fab.rst
     );
+
+    BUFG_ifc bufg <- mkBUFG(clocked_by mmcm.clkfbout);
 
     SyncPulseIfc pStart <- mkSyncPulseFromCC(clk_200);
     SyncPulseIfc pStopped <- mkSyncPulseToCC(clk_200, rst_200);
@@ -87,7 +86,6 @@ module [Module] mkTestMain(TestHandler);
 
     //connect clk feedback through BUFG
     rule fb;
-        bufg.in(mmcm.clkfbout);
         mmcm.clkfbin(bufg.out);
     endrule
     
