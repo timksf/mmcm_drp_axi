@@ -26,7 +26,6 @@ module [Module] mkTestFSM(TestHandler);
     Wire#(Bit#(1)) bwDEN <- mkBypassWire;
     Wire#(Bit#(DRP_ADDR_WIDTH)) bwDAddr <- mkBypassWire;
     Wire#(Bit#(DRP_DATA_WIDTH)) bwDI <- mkBypassWire;
-    Wire#(Bit#(1)) bwDRstMMCM <- mkBypassWire;
     
     Wire#(Bit#(DRP_DATA_WIDTH)) dwDO <- mkDWire(0);
     Wire#(Bit#(1)) dwDRDY <- mkDWire(0);
@@ -35,15 +34,14 @@ module [Module] mkTestFSM(TestHandler);
     Reg#(Bit#(32)) rLckDly <- mkRegU;
     
     //DUT -> MMCM
-    mkConnection(toGet(dut.mmcm_fab.dwe), toPut(asReg(bwDWE)));
-    mkConnection(toGet(dut.mmcm_fab.den), toPut(asReg(bwDEN)));
+    mkConnection(toGet(dut.mmcm_fab.dwe),   toPut(asReg(bwDWE)));
+    mkConnection(toGet(dut.mmcm_fab.den),   toPut(asReg(bwDEN)));
     mkConnection(toGet(dut.mmcm_fab.daddr), toPut(asReg(bwDAddr)));
-    mkConnection(toGet(dut.mmcm_fab.d_i), toPut(asReg(bwDI)));
-    mkConnection(toGet(dut.mmcm_fab.rst_mmcm), toPut(asReg(bwDRstMMCM)));
+    mkConnection(toGet(dut.mmcm_fab.d_i),   toPut(asReg(bwDI)));
     //MMCM -> DUT
-    mkConnection(toGet(asReg(dwDRDY)), toPut(dut.mmcm_fab.drdy));
-    mkConnection(toGet(asReg(dwDO)), toPut(dut.mmcm_fab.d_o));
-    mkConnection(toGet(asReg(dwLocked)), toPut(dut.mmcm_fab.locked));
+    mkConnection(toGet(asReg(dwDRDY)),      toPut(dut.mmcm_fab.drdy));
+    mkConnection(toGet(asReg(dwDO)),        toPut(dut.mmcm_fab.d_o));
+    mkConnection(toGet(asReg(dwLocked)),    toPut(dut.mmcm_fab.locked));
 
     //simple mmcm model to test DRP fsm
     Stmt mmcm = {
@@ -58,8 +56,11 @@ module [Module] mkTestFSM(TestHandler);
                 $fatal(1, "DWE set for first DRP access, should be read");
             endaction
             delay(5);
-            dwDRDY <= 1;
-            dwDO <= 'h0303;
+            action
+                //assert DRDY and DO in the same cycle
+                dwDRDY <= 1;
+                dwDO <= 'h0303;
+            endaction
             action
                 //wait for subsequent write access to DRP register
                 await(bwDEN == 1 && bwDWE == 1);
@@ -67,7 +68,6 @@ module [Module] mkTestFSM(TestHandler);
             endaction
             delay(5);
             dwDRDY <= 1;
-            await(bwDRstMMCM == 0);
             delay(fromInteger(cLckDly));
             dwLocked <= 1;
         endseq

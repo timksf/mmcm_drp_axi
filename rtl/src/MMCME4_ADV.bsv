@@ -226,7 +226,7 @@ module vMkMMCME4_ADV#(
     method (* reg *) CDDCDONE     cddcdone();
     method (* reg *) DO           d_o() clocked_by(dclk);
     method (* reg *) DRDY         drdy() clocked_by(dclk);
-    method (* reg *) LOCKED       locked();
+    method (* reg *) LOCKED       locked() clocked_by(no_clock) reset_by(no_reset);
     method (* reg *) PSDONE       psdone();
     method (* reg *) CLKFBSTOPPED clkfbstopped();
     method (* reg *) CLKINSTOPPED clkinstopped();

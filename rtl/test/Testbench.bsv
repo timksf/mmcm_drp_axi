@@ -10,6 +10,7 @@ import MMCM_DRP_AXI :: *;
 import MMCM_DRP_FSM :: *;
 import TestImport :: *;
 import TestMain :: *;
+import TestFSM :: *;
 
 (* synthesize *)
 module [Module] mkTestbench();

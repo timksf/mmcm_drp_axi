@@ -26,7 +26,6 @@ module [Module] mkTestMain(TestHandler);
     //required for simulation of Xilinx IP
     let glbl <- vMkGLBL;
 
-    
     Clock clk_200 <- mkAbsoluteClock(0, 5000);
     Clock clk_100 <- mkAbsoluteClock(0, 10000);
     Reset rst_200 <- mkAsyncResetFromCR(1, clk_200);
@@ -55,6 +54,8 @@ module [Module] mkTestMain(TestHandler);
 
     SyncPulseIfc pStart <- mkSyncPulseFromCC(clk_200);
     SyncPulseIfc pStopped <- mkSyncPulseToCC(clk_200, rst_200);
+
+    SyncBitIfc#(Bool) syncStarted <- mkSyncBitToCC(clk_200, rst_200);
         
     //DUT -> MMCM
     mkConnection(toGet(drp_fsm.mmcm_fab.dwe),   toPut(mmcm.dwe));
@@ -67,9 +68,31 @@ module [Module] mkTestMain(TestHandler);
     mkConnection(toGet(mmcm.locked),            toPut(drp_fsm.mmcm_fab.locked));
 
     Stmt s = {
-        seq
-            drp_fsm.set_drp_register(DRP_Request { addr: 'h0A, data: 'h9090, mask: 'h7F7F });
-            delay(100);
+        seq 
+            syncStarted.send(True);
+            print_s("Starting DRP simulation", YELLOW);
+            action
+            drp_fsm.set_drp_register(DRP_Request { 
+                addr: 'h0B,                 //ClkReg2 for clkout1
+                data:  0,                   //enable counter
+                mask: 'hFB00                //retain counter enable bit
+            });
+            print_s("Setting 0xB", YELLOW);
+            endaction
+            action
+            drp_fsm.set_drp_register(DRP_Request { 
+                addr: 'h0A,                 //ClkReg1 for clkout1
+                data: ('h20 << 6) | 'h20,   //set divider to 32+32=64
+                mask: 'h1000                //retain counter enable bit
+            });
+            print_s("Setting 0xA", YELLOW);
+            endaction
+            print_s("Waiting for MMCM lock...", YELLOW);
+            action
+                await(unpack(mmcm.locked));
+                print_s("MMCM locked", GREEN);
+            endaction
+            delay(5);
         endseq
     };
 
@@ -98,7 +121,7 @@ module [Module] mkTestMain(TestHandler);
     endrule
 
     method go = pStart.send;
-    method done = pStopped.pulse;
+    method done = pStopped.pulse && syncStarted.read;
 
 endmodule
 

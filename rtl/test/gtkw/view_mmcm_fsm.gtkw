@@ -1,0 +1,57 @@
+[*]
+[*] GTKWave Analyzer v3.3.118 (w)1999-2023 BSI
+[*] Mon Jun  9 14:57:45 2025
+[*]
+[dumpfile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/build/dump.vcd"
+[dumpfile_mtime] "Mon Jun  9 14:12:19 2025"
+[dumpfile_size] 83990932
+[savefile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/test/gtkw/view_mmcm_fsm.gtkw"
+[timestart] 0
+[size] 2560 1393
+[pos] -1 -1
+*-21.080191 10770000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] main.
+[treeopen] main.top.
+[treeopen] main.top.test.
+[treeopen] main.top.test.clk_200.
+[treeopen] main.top.test.mmcm.
+[sst_width] 381
+[signals_width] 288
+[sst_expanded] 1
+[sst_vpaned_height] 793
+@28
+main.top.test.clk_100.CLK_OUT
+main.top.test.clk_200.CLK_OUT
+main.top.test.rst_200.OUT_RST
+main.top.test.drp_fsm.CLK_mmcm_fab_dclk
+@2022
+^1 /home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/test/gtkw/DRP_FSM_State_t.txt
+main.top.test.drp_fsm.rState[3:0]
+@28
+main.top.test.drp_fsm.RST_N_mmcm_fab_rst
+main.top.test.drp_fsm.mmcm_fab_den
+main.top.test.drp_fsm.mmcm_fab_dwe
+@22
+main.top.test.drp_fsm.mmcm_fab_daddr[6:0]
+main.top.test.drp_fsm.mmcm_fab_d_i[15:0]
+main.top.test.drp_fsm.mmcm_fab_d_o_d[15:0]
+@28
+main.top.test.drp_fsm.mmcm_fab_drdy_d
+main.top.test.drp_fsm.mmcm_fab_locked_l
+@200
+-MMCM clocks
+@28
+main.top.test.mmcm.CLKOUT0
+main.top.test.mmcm.CLKOUT1
+main.top.test.drp_fsm.rDone
+main.top.test.mmcm.LOCKED
+@420
+main.top.test.mmcm.clk1_cnt_ht
+@22
+main.top.test.mmcm.clk1_ht[5:0]
+main.top.test.mmcm.clk1_lt[6:0]
+main.top.test.mmcm.clk1_cnt[7:0]
+@28
+main.top.test.done
+[pattern_trace] 1
+[pattern_trace] 0
