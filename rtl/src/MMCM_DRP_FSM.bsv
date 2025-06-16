@@ -2,6 +2,8 @@ package MMCM_DRP_FSM;
 
 import Clocks :: *;
 import DReg :: *;
+import FIFOF :: *;
+import SpecialFIFOs :: *;
 
 typedef struct {
     Bit#(aw) addr;
@@ -40,6 +42,7 @@ interface MMCM_DRP_FSM_ifc#(numeric type aw, numeric type dw);
 
     //outward facing
     (* prefix="s" *) method Action set_drp_register(DRP_Request#(aw, dw) req);
+    method Bool running();
     method Bool done();
     method Action reset_fsm();
 
@@ -57,24 +60,25 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
     Reset rst_out <- mkResetEither(rst, rst_mmcm.new_rst);
 
     //internal registers
-    Reg#(FSM_State)             rState      <- mkReg(RESTART);
-    Reg#(DRP_Request#(aw, dw))  rDRPReq     <- mkRegU;
-    Reg#(Bit#(dw))              rDRPData    <- mkRegU;
-    Reg#(Bool)                  rDone       <- mkDReg(False);
+    Reg#(FSM_State)                 rState      <- mkReg(RESTART);
+    FIFOF#(DRP_Request#(aw, dw))    fRequests   <- mkSizedBypassFIFOF(2);
+    Reg#(DRP_Request#(aw, dw))      rDRPReq     <- mkRegU;
+    Reg#(Bit#(dw))                  rDRPData    <- mkRegU;
+    Reg#(Bool)                      rDone       <- mkDReg(False);
 
-    //input wires
-    Wire#(Bit#(1))              bwDRDY      <- mkBypassWire;
-    Wire#(Bit#(dw))             bwDO        <- mkBypassWire;
-    Wire#(Bit#(1))              bwLocked    <- mkBypassWire;
+    //input wires   
+    Wire#(Bit#(1))                  bwDRDY      <- mkBypassWire;
+    Wire#(Bit#(dw))                 bwDO        <- mkBypassWire;
+    Wire#(Bit#(1))                  bwLocked    <- mkBypassWire;
 
-    //registered outputs
-    Reg#(Bit#(1))               rDWE        <- mkRegU;
-    Reg#(Bit#(1))               rDEN        <- mkRegU;
-    Reg#(Bit#(aw))              rDAddr      <- mkRegU;
-    Reg#(Bit#(dw))              rDI         <- mkRegU;
+    //registered outputs    
+    Reg#(Bit#(1))                   rDWE        <- mkRegU;
+    Reg#(Bit#(1))                   rDEN        <- mkRegU;
+    Reg#(Bit#(aw))                  rDAddr      <- mkRegU;
+    Reg#(Bit#(dw))                  rDI         <- mkRegU;
 
     //always assert mmcm reset during DRP access
-    rule r_rst_mmcm (rState != WAIT_SEN && rState != WAIT_LOCK);
+    rule r_rst_mmcm ((rState != WAIT_SEN || fRequests.notEmpty()) && rState != WAIT_LOCK);
         rst_mmcm.assertReset();
     endrule
 
@@ -85,6 +89,13 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
     rule r_wait_lock (rState == WAIT_LOCK);
         if(bwLocked == 1)
             rState <= WAIT_SEN; //WAIT_SEN implemented in method below
+    endrule
+
+    rule r_wait_sen (rState == WAIT_SEN);
+        //since we use a bypass fifo, this state is still single cycle
+        rDRPReq <= fRequests.first;
+        fRequests.deq;
+        rState <= READ;
     endrule
 
     rule r_read (rState == READ);
@@ -123,15 +134,17 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
         rDEN <= 0;
         rDWE <= 0;
         if(bwDRDY == 1) begin
-            rState <= WAIT_LOCK;
-            rDone <= True;
+            //only done when requests empty
+            rState <= fRequests.notEmpty ? WAIT_SEN : WAIT_LOCK;
+            rDone <= !fRequests.notEmpty;
         end
     endrule
 
-    method Action set_drp_register(DRP_Request#(aw, dw) r) if(rState == WAIT_SEN);
-        rState <= READ;
-        rDRPReq <= r;
+    method Action set_drp_register(DRP_Request#(aw, dw) r);
+        fRequests.enq(r);
     endmethod
+
+    method running = rState != WAIT_LOCK && rState != RESTART && (rState != WAIT_SEN || fRequests.notEmpty);
 
     method done = rDone;
     

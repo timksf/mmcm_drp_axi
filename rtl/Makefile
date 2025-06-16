@@ -43,7 +43,7 @@ CXX_NO_OPT := 1
 
 # Any additional files added during compilation
 # For instance for BDPI or Verilog/VHDL files for simulation
-# CPP_FILES += $(current_dir)/src/mem_sim.cpp
+C_FILES += ../bdpi/bdpi.c
 
 # Custom defines added to compile steps
 # EXTRA_FLAGS+=-D "BENCHMARK=1"

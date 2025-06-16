@@ -9,6 +9,7 @@ import BlueLib :: *;
 import TestHelper :: *;
 // import MMCM_DRP_AXI :: *;
 import MMCM_DRP_FSM :: *;
+import ClockTester :: *;
 
 import GLBL :: *;
 import BUFG :: *;
@@ -87,7 +88,9 @@ module [Module] mkTestMain(TestHandler);
             });
             print_s("Setting 0xA", YELLOW);
             endaction
+            await(drp_fsm.running());
             print_s("Waiting for MMCM lock...", YELLOW);
+            await(drp_fsm.done());
             action
                 await(unpack(mmcm.locked));
                 print_s("MMCM locked", GREEN);
