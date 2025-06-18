@@ -2,13 +2,13 @@ module ClockTester(
     input clk_fst,
     input clk_slw,
     input reset_n,
-    output [15:0] ht_out,
-    output [15:0] lt_out
+    output reg [15:0] ht_out,
+    output reg [15:0] lt_out
 );
 
-    wire [15:0] ht;
-    wire [15:0] lt;
-    wire clk_slow_del;
+    reg [15:0] ht;
+    reg [15:0] lt;
+    reg clk_slow_del;
 
     always @ (posedge clk_fst) begin
         if(!reset_n) begin

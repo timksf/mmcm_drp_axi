@@ -27,10 +27,13 @@ module [Module] mkTestMain(TestHandler);
     //required for simulation of Xilinx IP
     let glbl <- vMkGLBL;
 
+    //time units are picoseconds
     Clock clk_200 <- mkAbsoluteClock(0, 5000);
     Clock clk_100 <- mkAbsoluteClock(0, 10000);
     Reset rst_200 <- mkAsyncResetFromCR(1, clk_200);
     
+    ClockTester_ifc clk_test <- mkClockTester(1000, clk_200);
+
     let mmcm_cfg = defaultValue;
     mmcm_cfg.p_CLKFBOUT_MULT_F = 48;
     mmcm_cfg.p_DIVCLK_DIVIDE = 6;
@@ -70,6 +73,11 @@ module [Module] mkTestMain(TestHandler);
 
     Stmt s = {
         seq 
+            delay(10);
+            action
+                test($realtobits(2.44));
+            endaction
+            // print_s("Yo: " + realToString(clk_test.f_slow()), RED);
             syncStarted.send(True);
             print_s("Starting DRP simulation", YELLOW);
             action

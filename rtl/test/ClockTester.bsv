@@ -15,12 +15,15 @@ endinterface
 import "BDPI" function Bit#(64) c_int_to_double(Bit#(32) x);
 import "BDPI" function Bit#(64) c_freq_from_ht_lt(Bit#(64) f_fast, Bit#(32) ht, Bit#(32) lt);
 
+import "BDPI" function Action test(Bit#(64) x);
+
 function Real freq_from_ht_lt(Real f_fast, Bit#(sz) ht, Bit#(sz) lt) provisos(Max#(32, sz, 32));
     return $bitstoreal(c_freq_from_ht_lt($realtobits(f_fast), cExtend(ht), cExtend(lt)));
 endfunction
 
 function Real int_to_double(Bit#(32) x);
-    return $bitstoreal(c_int_to_double(x));
+    Bit#(64) v = c_int_to_double(x);
+    return 1;
 endfunction
 
 import "BVI" ClockTester =
@@ -42,7 +45,7 @@ endmodule
 
 module mkClockTester#(Integer fast_period, Clock clk_slow)(ClockTester_ifc);
 
-    Real f_fast = 1 / int_to_double(fromInteger(fast_period));
+    // Real f_fast = 1 / int_to_double(fromInteger(fast_period));
 
     Clock clk_fast <- mkAbsoluteClock(0, fast_period);
     Reset rst_fast <- mkSyncResetFromCR(1, clk_fast);
@@ -60,7 +63,7 @@ module mkClockTester#(Integer fast_period, Clock clk_slow)(ClockTester_ifc);
     endrule
 
     //could also calculate duty cycle
-    method f_slow = freq_from_ht_lt(f_fast, sync_ht, sync_lt);
+    method f_slow = 0; //freq_from_ht_lt(1000000000, sync_ht, sync_lt);
 
 endmodule
 

@@ -64,7 +64,7 @@ endif
 # CONSTRAINT_FILES += "$(CURDIR)/constraints/custom.xdc,LATE"
 
 VERILOG_SIM:=iverilog
-VERILOG_INC:=$(CURDIR)/../lib/unisim:$(CURDIR)/../lib
+VERILOG_INC:=$(CURDIR)/../lib/unisim:$(CURDIR)/../lib:$(CURDIR)/test/
 
 # Do not change: Load libraries such as BlueAXI or BlueLib
 ifneq ("$(wildcard $(CURDIR)/libraries/*/*.mk)", "")
