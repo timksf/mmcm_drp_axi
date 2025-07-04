@@ -2,6 +2,7 @@ module ClockTester(
     input clk_fst,
     input clk_slw,
     input reset_n,
+    input restart,
     output reg [15:0] ht_out,
     output reg [15:0] lt_out
 );
@@ -11,7 +12,7 @@ module ClockTester(
     reg clk_slow_del;
 
     always @ (posedge clk_fst) begin
-        if(!reset_n) begin
+        if(!reset_n || restart) begin
             //synchronous reset
             ht <= 0;
             lt <= 0;
@@ -25,12 +26,12 @@ module ClockTester(
                 2'b01: begin
                     if(ht_out != ht) 
                         ht_out <= ht;
-                    ht <= 0;
+                    ht <= 1;
                 end
                 2'b10: begin
                     if(lt_out != lt) 
                         lt_out <= lt;
-                    lt <= 0;
+                    lt <= 1;
                 end
             endcase
             clk_slow_del <= clk_slw;
