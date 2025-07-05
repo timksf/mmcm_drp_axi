@@ -78,6 +78,7 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
     Reg#(Bit#(dw))                  rDI         <- mkRegU;
 
     //always assert mmcm reset during DRP access
+    //keep reset asserted for back-to-back DRP requests
     rule r_rst_mmcm ((rState != WAIT_SEN || fRequests.notEmpty()) && rState != WAIT_LOCK);
         rst_mmcm.assertReset();
     endrule
@@ -88,7 +89,7 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
 
     rule r_wait_lock (rState == WAIT_LOCK);
         if(bwLocked == 1)
-            rState <= WAIT_SEN; //WAIT_SEN implemented in method below
+            rState <= WAIT_SEN;
     endrule
 
     rule r_wait_sen (rState == WAIT_SEN);

@@ -76,33 +76,6 @@ module [Module] mkTestMain(TestHandler);
         seq 
             delay(10);
             syncStarted.send(True);
-            print_s("Starting DRP simulation", YELLOW);
-            action
-            drp_fsm.set_drp_register(DRP_Request { 
-                addr: 'h0B,                 //ClkReg2 for clkout1
-                data:  0,                   //enable counter
-                mask: 'hFB00                //retain counter enable bit
-            });
-            print_s("Setting 0xB", YELLOW);
-            endaction
-            action
-            drp_fsm.set_drp_register(DRP_Request { 
-                addr: 'h0A,                 //ClkReg1 for clkout1
-                data: ('h20 << 6) | 'h20,   //set divider to 32+32=64
-                mask: 'h1000                //retain counter enable bit
-            });
-            print_s("Setting 0xA", YELLOW);
-            endaction
-            await(drp_fsm.running());
-            print_s("Waiting for MMCM lock...", YELLOW);
-            await(drp_fsm.done());
-            action
-                await(unpack(mmcm.locked));
-                print_s("MMCM locked", GREEN);
-            endaction
-            clk_test.restart();
-            delay(30); //have to wait for at least a cycle of the slow clock
-            $write("Freq: "); print_freq(clk_test.f_slow()); $display();
         endseq
     };
 

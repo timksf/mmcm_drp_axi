@@ -120,7 +120,7 @@ module [Module] mkMMCM_DRP_AXI(MMCM_DRP_AXI_ifc#(aw, dw))
         Bit#(6) ltime = truncate(rClkDiv >> 1) + zeroExtend(rClkDiv[0]);
         //TODO adaptive mask from lut
         DRP_Request#(aw, dw) req = DRP_Request { addr: rAddr, data: zeroExtend(htime) << 6 | zeroExtend(ltime), mask: 'h0000 };
-        drp_fsm.set_drp_register(req); //this will only fire, when the DRP is ready
+        drp_fsm.set_drp_register(req); //this will only fire when the DRP is ready
         rAddr <= rAddr + 1;
         rState <= REG1;
     endrule
