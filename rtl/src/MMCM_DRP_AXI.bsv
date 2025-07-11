@@ -118,8 +118,7 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
     Reg#(Bit#(DRP_ADDR_WIDTH))      rAddr       <- mkRegU;
     Vector#(NUM_CLOCKS, Reg#(Bool)) vClockEn    <- replicateM(mkReg(False));
     
-    IntExtConfig_ifc#(12, 32, MMCM_DRP_AXI_Cfg_ifc) config_ <- axi4LiteConfigFromContext(mmcm_drp_axi_cfg);
-    
+    IntExtConfig_ifc#(12, 32, MMCM_DRP_AXI_Cfg_ifc)     config_ <- axi4LiteConfigFromContext(mmcm_drp_axi_cfg);
     MMCM_DRP_FSM_ifc#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH)   drp_fsm <- mkMMCM_DRP_FSM();
     MMCME4_ADV_ifc                                      mmcm    <- mkMMCM4E_ADV(mmcm_cfg, clkin, clkin, clkin, clkin);
     BUFG_bit_ifc                                        bufg_fb <- mkBUFGBit(clocked_by mmcm.clkfbout);
