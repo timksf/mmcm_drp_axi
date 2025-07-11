@@ -7,7 +7,6 @@ import Clocks :: *;
 
 import BlueLib :: *;
 import TestHelper :: *;
-// import MMCM_DRP_AXI :: *;
 import MMCM_DRP_FSM :: *;
 import ClockTester :: *;
 
@@ -55,7 +54,7 @@ module [Module] mkTestMain(TestHandler);
 
     ClockTester_ifc clk_test <- mkClockTester(1000, mmcm.clkout1, clocked_by clk_200MHz, reset_by rst_200);
 
-    BUFG_ifc bufg <- mkBUFG(clocked_by mmcm.clkfbout);
+    BUFG_bit_ifc bufg <- mkBUFGBit(clocked_by mmcm.clkfbout);
 
     SyncPulseIfc pStart <- mkSyncPulseFromCC(clk_200MHz);
     SyncPulseIfc pStopped <- mkSyncPulseToCC(clk_200MHz, rst_200);

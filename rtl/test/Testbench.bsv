@@ -11,6 +11,7 @@ import MMCM_DRP_FSM :: *;
 import TestImport :: *;
 import TestMain :: *;
 import TestFSM :: *;
+import TestAXI :: *;
 
 (* synthesize *)
 module [Module] mkTestbench();

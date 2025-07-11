@@ -1,4 +1,4 @@
-package TestMain;
+package TestAXI;
 
 import StmtFSM :: *;
 import Connectable :: *;
@@ -6,8 +6,9 @@ import GetPut :: *;
 import Clocks :: *;
 
 import BlueLib :: *;
+import BlueAXI :: *;
 import TestHelper :: *;
-// import MMCM_DRP_AXI :: *;
+import MMCM_DRP_AXI :: *;
 import MMCM_DRP_FSM :: *;
 import ClockTester :: *;
 
@@ -19,7 +20,7 @@ typedef 7 DRP_ADDR_WIDTH;
 typedef 16 DRP_DATA_WIDTH;
 
 (* synthesize *)
-module [Module] mkTestMain(TestHandler);
+module [Module] mkTestAXI(TestHandler);
 
     let print_fmt = print_mod_pre_color_t_f;
     let print_s = print_mod_pre_color_t_s;
@@ -40,61 +41,59 @@ module [Module] mkTestMain(TestHandler);
     mmcm_cfg.p_CLKIN2_PERIOD    = 10.0;
     mmcm_cfg.p_IS_RST_INVERTED  = 1;
     mmcm_cfg.p_CLKOUT0_DIVIDE_F = 2.0;
+
+    AXI4_Lite_Master_Rd#(12, 32) m_rd <- mkAXI4_Lite_Master_Rd(1, clocked_by clk_200MHz, reset_by rst_200);
+    AXI4_Lite_Master_Wr#(12, 32) m_wr <- mkAXI4_Lite_Master_Wr(1, clocked_by clk_200MHz, reset_by rst_200);
     
-    MMCM_DRP_FSM_ifc#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) drp_fsm <- mkMMCM4E_DRP_FSM(clocked_by clk_200MHz, reset_by rst_200);
-    
-    MMCME4_ADV_ifc mmcm <- mkMMCM4E_ADV(
-        mmcm_cfg,
-        clk_200MHz,
-        clk_100,
-        clk_200MHz,
-        clk_200MHz,
-        clocked_by clk_200MHz,
-        reset_by drp_fsm.mmcm_fab.rst
-    );
-
-    ClockTester_ifc clk_test <- mkClockTester(1000, mmcm.clkout1, clocked_by clk_200MHz, reset_by rst_200);
-
-    BUFG_ifc bufg <- mkBUFG(clocked_by mmcm.clkfbout);
-
     SyncPulseIfc pStart <- mkSyncPulseFromCC(clk_200MHz);
     SyncPulseIfc pStopped <- mkSyncPulseToCC(clk_200MHz, rst_200);
-
     SyncBitIfc#(Bool) syncStarted <- mkSyncBitToCC(clk_200MHz, rst_200);
-        
-    //DUT -> MMCM
-    mkConnection(toGet(drp_fsm.mmcm_fab.dwe),   toPut(mmcm.dwe));
-    mkConnection(toGet(drp_fsm.mmcm_fab.den),   toPut(mmcm.den));
-    mkConnection(toGet(drp_fsm.mmcm_fab.daddr), toPut(mmcm.daddr));
-    mkConnection(toGet(drp_fsm.mmcm_fab.d_i),   toPut(mmcm.d_i));
-    //MMCM -> DUT
-    mkConnection(toGet(mmcm.drdy),              toPut(drp_fsm.mmcm_fab.drdy));
-    mkConnection(toGet(mmcm.d_o),               toPut(drp_fsm.mmcm_fab.d_o));
-    mkConnection(toGet(mmcm.locked),            toPut(drp_fsm.mmcm_fab.locked));
+    
+    MMCM_DRP_AXI_ifc#(12, 32) dut <- mkMMCM_DRP_AXI(mmcm_cfg, clocked_by clk_200MHz, reset_by rst_200);
+    Reg#(Bool) rDone <- mkReg(False, clocked_by clk_200MHz, reset_by rst_200);
+
+    ClockTester_ifc clk_test <- mkClockTester(1000, dut.clks[1], clocked_by clk_200MHz, reset_by rst_200);
+    
+    mkConnection(dut.fab_config_rd, m_rd.fab);
+    mkConnection(dut.fab_config_wr, m_wr.fab);
+
+    function Action axi4l_expect_okay(AXI4_Lite_Master_Wr#(aw, dw) m);
+        action
+            let rsp <- axi4_lite_write_response(m);
+            if(rsp != OKAY)
+                $display("Got bad response from AXI4L write master");
+        endaction
+    endfunction
+
+    function Stmt axi4l_write_reg(AXI4_Lite_Master_Wr#(aw, dw) m, Bit#(aw) a, Bit#(dw) d);
+        Stmt s = seq 
+            axi4_lite_write(m, a, d);
+            axi4l_expect_okay(m);
+        endseq;
+        return s;
+    endfunction
 
     Stmt s = {
         seq 
-            delay(10);
             syncStarted.send(True);
+            delay(10);
+            axi4l_write_reg(m_wr, fromInteger(cfg_clksel_offs), 1);
+            axi4l_write_reg(m_wr, fromInteger(cfg_clkdiv_offs), 32);
+            axi4l_write_reg(m_wr, fromInteger(cfg_ctrl_offs), 1 << cfg_apply_bit_offs);
+            while(!rDone) seq
+                axi4_lite_read(m_rd, fromInteger(cfg_stat_offs));
+                action
+                    let rsp <- axi4_lite_read_response(m_rd);
+                    if(unpack(rsp[cfg_done_bit_offs])) begin
+                        rDone <= True;
+                    end
+                endaction
+            endseq
         endseq
     };
 
     FSM main <- mkFSM(s, clocked_by clk_200MHz, reset_by rst_200);
 
-    //tieoff unused signals
-    rule tieoff;
-        mmcm.cddcreq(0);
-        mmcm.clkinsel(1);
-        mmcm.psen(0);
-        mmcm.psincdec(0);
-        mmcm.pwrdwn(0);
-    endrule
-
-    //connect clk feedback through BUFG
-    rule fb;
-        mmcm.clkfbin(bufg.out);
-    endrule
-    
     rule start if(pStart.pulse());
         main.start();
     endrule

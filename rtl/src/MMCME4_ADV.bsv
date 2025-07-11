@@ -84,6 +84,7 @@ interface MMCME4_ADV_ifc;
     method Action psen(Bit#(1) i);
     method Action psincdec(Bit#(1) i);
     method Action pwrdwn(Bit#(1) i);
+    //ToDo change clkfbin to Clock parameter
     method Action clkfbin(Bit#(1) i);
 
     method Bit#(1)  cddcdone();

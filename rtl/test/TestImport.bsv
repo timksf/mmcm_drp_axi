@@ -43,7 +43,7 @@ module [Module] mkTestImport(TestHandler);
         reset_by mmcm_rst
     );
 
-    BUFG_ifc bufg <- mkBUFG(clocked_by dut.clkfbout);
+    BUFG_bit_ifc bufg <- mkBUFGBit(clocked_by dut.clkfbout);
 
     let rst <- exposeCurrentReset();
     let rst0 <- mkAsyncReset(2, rst, dut.clkout0);
