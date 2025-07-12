@@ -41,7 +41,7 @@ module vMkBUFGCE#(BUFGCE_Config cfg)(BUFGCE_ifc);
     path(I, O);
     path(CE, O);
 
-    same_family(clk_in, clk_out);
+    ancestor(clk_out, clk_in);
 endmodule
 
 module mkBUFGCE#(BUFGCE_Config cfg)(BUFGCE_ifc);

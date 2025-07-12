@@ -45,17 +45,18 @@ module [Module] mkTestAXI(TestHandler);
     AXI4_Lite_Master_Rd#(12, 32) m_rd <- mkAXI4_Lite_Master_Rd(1, clocked_by clk_200MHz, reset_by rst_200);
     AXI4_Lite_Master_Wr#(12, 32) m_wr <- mkAXI4_Lite_Master_Wr(1, clocked_by clk_200MHz, reset_by rst_200);
     
-    SyncPulseIfc pStart <- mkSyncPulseFromCC(clk_200MHz);
-    SyncPulseIfc pStopped <- mkSyncPulseToCC(clk_200MHz, rst_200);
-    SyncBitIfc#(Bool) syncStarted <- mkSyncBitToCC(clk_200MHz, rst_200);
-    
-    MMCM_DRP_AXI_ifc#(12, 32) dut <- mkMMCM_DRP_AXI(mmcm_cfg, clocked_by clk_200MHz, reset_by rst_200);
-    Reg#(Bool) rDone <- mkReg(False, clocked_by clk_200MHz, reset_by rst_200);
+    //synchronization of FSM start and stop
+    SyncPulseIfc        pStart          <- mkSyncPulseFromCC(clk_200MHz);
+    SyncPulseIfc        pStopped        <- mkSyncPulseToCC(clk_200MHz, rst_200);
+    SyncBitIfc#(Bool)   syncStarted     <- mkSyncBitToCC(clk_200MHz, rst_200);
 
-    ClockTester_ifc clk_test <- mkClockTester(1000, dut.clks[1], clocked_by clk_200MHz, reset_by rst_200);
+    Reg#(Bool)                  rDone   <- mkReg(False, clocked_by clk_200MHz, reset_by rst_200);
+    MMCM_DRP_AXI_ifc#(12, 32)   dut     <- mkMMCM4E_DRP_AXI(mmcm_cfg, clocked_by clk_200MHz, reset_by rst_200);
+
+    // ClockTester_ifc clk_test <- mkClockTester(1000, dut.clks[1], clocked_by clk_200MHz, reset_by rst_200);
     
-    mkConnection(dut.fab_config_rd, m_rd.fab);
-    mkConnection(dut.fab_config_wr, m_wr.fab);
+    mkConnection(dut.fab_config_rd, m_rd.fab, clocked_by clk_200MHz, reset_by rst_200);
+    mkConnection(dut.fab_config_wr, m_wr.fab, clocked_by clk_200MHz, reset_by rst_200);
 
     function Action axi4l_expect_okay(AXI4_Lite_Master_Wr#(aw, dw) m);
         action
@@ -75,8 +76,9 @@ module [Module] mkTestAXI(TestHandler);
 
     Stmt s = {
         seq 
-            syncStarted.send(True);
             delay(10);
+            syncStarted.send(True);
+            print_s("Starting DRP AXI simulation", YELLOW);
             axi4l_write_reg(m_wr, fromInteger(cfg_clksel_offs), 1);
             axi4l_write_reg(m_wr, fromInteger(cfg_clkdiv_offs), 32);
             axi4l_write_reg(m_wr, fromInteger(cfg_ctrl_offs), 1 << cfg_apply_bit_offs);
@@ -89,6 +91,13 @@ module [Module] mkTestAXI(TestHandler);
                     end
                 endaction
             endseq
+            action
+                await(dut.clks_rdy[1]);
+                print_s("CLK1 ready again", GREEN);
+            endaction
+            // clk_test.restart();
+            // delay(30); //have to wait for at least a cycle of the slow clock
+            // $write("Freq: "); print_freq(clk_test.f_slow()); $display();
         endseq
     };
 

@@ -29,7 +29,7 @@ module [Module] mkTestMain(TestHandler);
     //time units are picoseconds
     Clock clk_1GHz      <- mkAbsoluteClock(0, 1000);
     Clock clk_200MHz    <- mkAbsoluteClock(0, 5000);
-    Clock clk_100       <- mkAbsoluteClock(0, 10000);
+    Clock clk_100MHz    <- mkAbsoluteClock(0, 10000);
     Reset rst_200       <- mkAsyncResetFromCR(1, clk_200MHz);
 
     let mmcm_cfg = defaultValue;
@@ -45,7 +45,7 @@ module [Module] mkTestMain(TestHandler);
     MMCME4_ADV_ifc mmcm <- mkMMCM4E_ADV(
         mmcm_cfg,
         clk_200MHz,
-        clk_100,
+        clk_100MHz,
         clk_200MHz,
         clk_200MHz,
         clocked_by clk_200MHz,

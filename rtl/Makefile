@@ -30,7 +30,7 @@ endif
 
 # Default flags
 EXTRA_FLAGS=-D "TESTNAME=mk$(RUN_TEST)"
-EXTRA_FLAGS+=-show-schedule -D "BSV_TIMESCALE=1ps/1ps"
+EXTRA_FLAGS+=-show-schedule -D "BSV_TIMESCALE=1ps/1ps" -keep-inlined-boundaries
 #-keep-fires 
 
 ###

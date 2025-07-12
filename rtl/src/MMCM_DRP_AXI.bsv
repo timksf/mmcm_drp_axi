@@ -58,6 +58,7 @@ interface MMCM_DRP_AXI_ifc#(numeric type aw, numeric type dw);
     interface AXI4_Lite_Slave_Wr_Fab#(12, 32) fab_config_wr;
 
     //output clocks
+    interface Vector#(NUM_CLOCKS, ReadOnly#(Bool)) clks_rdy;
     interface Vector#(NUM_CLOCKS, Clock) clks;
 
 endinterface
@@ -70,7 +71,7 @@ module [ConfigCtx#(12, 32)] mmcm_drp_axi_cfg(MMCM_DRP_AXI_Cfg_ifc);
     Reg#(Bit#(8))   rClkDiv <- mkRegU;
 
     //add registers to AXI interface
-    addRegWO(cfg_ctrl_offs, rStatus);
+    addRegWO(cfg_ctrl_offs, rCmd);
     addRegRO(cfg_stat_offs, rStatus);
     addRegWO(cfg_clksel_offs, rClkSel);
     addRegWO(cfg_clkdiv_offs, rClkDiv);
@@ -119,13 +120,14 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
     Vector#(NUM_CLOCKS, Reg#(Bool)) vClockEn    <- replicateM(mkReg(False));
     
     IntExtConfig_ifc#(12, 32, MMCM_DRP_AXI_Cfg_ifc)     config_ <- axi4LiteConfigFromContext(mmcm_drp_axi_cfg);
-    MMCM_DRP_FSM_ifc#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH)   drp_fsm <- mkMMCM_DRP_FSM();
-    MMCME4_ADV_ifc                                      mmcm    <- mkMMCM4E_ADV(mmcm_cfg, clkin, clkin, clkin, clkin);
+    MMCM_DRP_FSM_ifc#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH)   drp_fsm <- mkMMCM4E_DRP_FSM();
+    MMCME4_ADV_ifc                                      mmcm    <- mkMMCM4E_ADV(mmcm_cfg, clkin, clkin, clkin, clkin, reset_by drp_fsm.mmcm_fab.rst);
     BUFG_bit_ifc                                        bufg_fb <- mkBUFGBit(clocked_by mmcm.clkfbout);
 
-    Vector#(NUM_CLOCKS, BUFGCE_ifc)  vBUFGCE     = newVector;
-    Vector#(NUM_CLOCKS, Clock)       mmcm_clks   = newVector;
-    Vector#(NUM_CLOCKS, Clock)       clks_out    = newVector;
+    Vector#(NUM_CLOCKS, BUFGCE_ifc)  vBUFGCE        = newVector;
+    Vector#(NUM_CLOCKS, Clock)       mmcm_clks      = newVector;
+    Vector#(NUM_CLOCKS, Clock)       clks_out       = newVector;
+    Vector#(NUM_CLOCKS, Wire#(Bool)) clks_out_rdy   <- replicateM(mkBypassWire);
 
     mmcm_clks[0] = mmcm.clkout0;
     mmcm_clks[1] = mmcm.clkout1;
@@ -154,6 +156,10 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
             vClockEn[i] <= !drp_fsm.running; //|| (cddc_en && sel!=i)
         endrule
 
+        rule rclk_rdy;
+            clks_out_rdy[i] <= vClockEn[i] && unpack(mmcm.locked);
+        endrule
+
         (* fire_when_enabled *)
         rule rclk_gate;
             vBUFGCE[i].set_gate(vClockEn[i]);
@@ -174,6 +180,7 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
         mmcm.clkfbin(bufg_fb.out);
     endrule
 
+    // (*descending_urgency = "r_srst, ..." *)
     rule r_srst (config_.device_ifc.srst);
         rState <= IDLE;
     endrule
@@ -190,7 +197,11 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
         Bit#(6) htime = truncate(rClkDiv >> 1);
         Bit#(6) ltime = truncate(rClkDiv >> 1) + zeroExtend(rClkDiv[0]);
         //ToDo adaptive mask from lut
-        DRP_Request#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) req = DRP_Request { addr: rAddr, data: zeroExtend(htime) << 6 | zeroExtend(ltime), mask: 'h0000 };
+        DRP_Request#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) req = DRP_Request { 
+            addr: rAddr,
+            data: zeroExtend(htime) << 6 | zeroExtend(ltime),
+            mask: 'h1000 
+        };
         drp_fsm.set_drp_register(req); //this will only fire when the DRP FSM is ready
         rAddr <= rAddr + 1;
         rState <= REG1;
@@ -199,12 +210,17 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
     rule r_reg1 (rState == REG1);
         Bit#(1) edge_ = rClkDiv[0];
         Bit#(1) no_count = pack(rClkDiv == 1);
-        DRP_Request#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) req = DRP_Request { addr: rAddr, data: zeroExtend(edge_) << 7 | zeroExtend(no_count) << 6, mask: 'hFB00 };
+        DRP_Request#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) req = DRP_Request { 
+            addr: rAddr,
+            data: zeroExtend(edge_) << 7 | zeroExtend(no_count) << 6,
+            mask: 'hFB00 
+        };
         drp_fsm.set_drp_register(req);
         rState <= WAIT_DONE;
     endrule
 
     rule r_wait (rState == WAIT_DONE);
+        //the done signal is a single pulse, it only signals DRP completion, not mmcm locking
         if(drp_fsm.done()) begin
             rState <= IDLE;
             config_.device_ifc.finish();
@@ -216,7 +232,13 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
     interface fab_config_wr = config_.bus_ifc.s_wr;
 
     interface clks = clks_out;
+    interface clks_rdy = map(regToReadOnly, map(asReg, clks_out_rdy));
 
+endmodule
+
+module [Module] mkMMCM4E_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(12, 32));
+    let _int <- mkMMCM_DRP_AXI(mmcm_cfg);
+    return _int;
 endmodule
 
 endpackage
