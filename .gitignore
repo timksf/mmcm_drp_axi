@@ -2,3 +2,4 @@ lib/
 *.ron
 .vscode/
 *.o
+*MRE/

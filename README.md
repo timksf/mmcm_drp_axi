@@ -1,4 +1,4 @@
-copy xilinx libraries:
+copy xilinx libraries for simulation:
 ```
 cp /tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/* lib/unisim/
 cp /tools/Xilinx/Vivado/2022.2/data/verilog/src/glbl.v lib/

@@ -27,6 +27,7 @@ module [Module] mkTestFSM(TestHandler);
     Wire#(Bit#(DRP_ADDR_WIDTH)) bwDAddr <- mkBypassWire;
     Wire#(Bit#(DRP_DATA_WIDTH)) bwDI <- mkBypassWire;
     
+    Wire#(Bit#(1)) dwCDDCDONE <- mkDWire(1);
     Wire#(Bit#(DRP_DATA_WIDTH)) dwDO <- mkDWire(0);
     Wire#(Bit#(1)) dwDRDY <- mkDWire(0);
     Wire#(Bit#(1)) dwLocked <- mkDWire(0);
@@ -39,6 +40,7 @@ module [Module] mkTestFSM(TestHandler);
     mkConnection(toGet(dut.mmcm_fab.daddr), toPut(asReg(bwDAddr)));
     mkConnection(toGet(dut.mmcm_fab.d_i),   toPut(asReg(bwDI)));
     //MMCM -> DUT
+    mkConnection(toGet(asReg(dwCDDCDONE)),  toPut(dut.mmcm_fab.cddcdone));
     mkConnection(toGet(asReg(dwDRDY)),      toPut(dut.mmcm_fab.drdy));
     mkConnection(toGet(asReg(dwDO)),        toPut(dut.mmcm_fab.d_o));
     mkConnection(toGet(asReg(dwLocked)),    toPut(dut.mmcm_fab.locked));

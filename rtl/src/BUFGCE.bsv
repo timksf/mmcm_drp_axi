@@ -10,7 +10,7 @@ import DefaultValue :: *;
 (* always_enabled *)
 interface BUFGCE_ifc;
     interface Clock clk_out;
-    method Action set_gate(Bool g);
+    // method Action set_gate(Bool g);
 endinterface
 
 typedef struct {
@@ -21,22 +21,19 @@ typedef struct {
 } BUFGCE_Config;
 
 import "BVI" BUFGCE = 
-module vMkBUFGCE#(BUFGCE_Config cfg)(BUFGCE_ifc);
+module vMkBUFGCE#(BUFGCE_Config cfg, Bool gate)(BUFGCE_ifc);
 
     parameter CE_TYPE           = cfg.p_CE_TYPE;
     parameter IS_CE_INVERTED    = cfg.p_IS_CE_INVERTED;
     parameter IS_I_INVERTED     = cfg.p_IS_I_INVERTED;
     parameter SIM_DEVICE        = cfg.p_SIM_DEVICE;
 
-    //put gate on input clock in method, so that it is accessible from outside this module
     default_clock clk_in(I);
     default_reset no_reset;
 
     output_clock clk_out (O);
 
-    method set_gate (CE) enable((*inhigh*) EN_CE); //clocked by default (input) clock
- 
-    schedule set_gate SBR set_gate;
+    port CE clocked_by(clk_in) reset_by(no_reset) = gate;
 
     path(I, O);
     path(CE, O);
@@ -44,10 +41,10 @@ module vMkBUFGCE#(BUFGCE_Config cfg)(BUFGCE_ifc);
     ancestor(clk_out, clk_in);
 endmodule
 
-module mkBUFGCE#(BUFGCE_Config cfg)(BUFGCE_ifc);
+module mkBUFGCE#(BUFGCE_Config cfg, Bool gate)(BUFGCE_ifc);
     // Wire#(Bool) dwCE <- mkDWire(True);
     (* hide *)
-    let _int <- vMkBUFGCE(cfg);
+    let _int <- vMkBUFGCE(cfg, gate);
     return _int;
 endmodule
 

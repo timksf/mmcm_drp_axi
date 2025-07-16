@@ -9,6 +9,7 @@ typedef struct {
     Bit#(aw) addr;
     Bit#(dw) data;  
     Bit#(dw) mask;
+    Bool     cddc;
 } DRP_Request#(numeric type aw, numeric type dw) deriving(Bits);
 
 typedef enum {
@@ -29,7 +30,9 @@ interface MMCM_DRP_Fab_ifc#(numeric type aw, numeric type dw);
     (* always_ready *)      method Bit#(1)   den();
     (* always_ready *)      method Bit#(aw)  daddr();
     (* always_ready *)      method Bit#(dw)  d_i();
+    (* always_ready *)      method Bit#(1)   cddcreq();
     
+    (* always_enabled *)    method Action   cddcdone(Bit#(1) d);
     (* always_enabled *)    method Action   drdy(Bit#(1) d);
     (* always_enabled *)    method Action   d_o(Bit#(dw) d);
     (* always_enabled *)    method Action   locked(Bit#(1) l);
@@ -69,6 +72,7 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
     //input wires   
     Wire#(Bit#(1))                  bwDRDY      <- mkBypassWire;
     Wire#(Bit#(dw))                 bwDO        <- mkBypassWire;
+    Wire#(Bit#(1))                  bwCDDCDONE  <- mkBypassWire;
     Wire#(Bit#(1))                  bwLocked    <- mkBypassWire;
 
     //registered outputs    
@@ -76,10 +80,11 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
     Reg#(Bit#(1))                   rDEN        <- mkRegU;
     Reg#(Bit#(aw))                  rDAddr      <- mkRegU;
     Reg#(Bit#(dw))                  rDI         <- mkRegU;
+    Reg#(Bit#(1))                   rCDDCREQ    <- mkRegU;
 
     //always assert mmcm reset during DRP access
     //keep reset asserted for back-to-back DRP requests
-    rule r_rst_mmcm ((rState != WAIT_SEN || fRequests.notEmpty()) && rState != WAIT_LOCK);
+    rule r_rst_mmcm ((rState != WAIT_SEN || (fRequests.notEmpty() && !fRequests.first.cddc)) && rState != WAIT_LOCK && !rDRPReq.cddc);
         rst_mmcm.assertReset();
     endrule
 
@@ -101,6 +106,7 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
 
     rule r_read (rState == READ);
         rDEN <= 1;
+        rCDDCREQ <= rDRPReq.cddc ? 1 : 0;
         rDAddr <= rDRPReq.addr;
         rState <= WAIT_RDRDY;
     endrule
@@ -136,8 +142,13 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
         rDWE <= 0;
         if(bwDRDY == 1) begin
             //only done when requests empty
+            rCDDCREQ <= fRequests.notEmpty ? 1 : 0;
+            rState <= fRequests.notEmpty ? WAIT_SEN : rDRPReq.cddc ? WAIT_WDRDY : WAIT_LOCK;
+            rDone <= !fRequests.notEmpty && !rDRPReq.cddc;
+        end else if(bwCDDCDONE == 1) begin
+            //cddcdone is asserted after drdy
             rState <= fRequests.notEmpty ? WAIT_SEN : WAIT_LOCK;
-            rDone <= !fRequests.notEmpty;
+            rDone <= !fRequests.notEmpty && rDRPReq.cddc;
         end
     endrule
 
@@ -155,7 +166,9 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
         method den      = rDEN;
         method daddr    = rDAddr;
         method d_i      = rDI;
+        method cddcreq  = rCDDCREQ;
         
+        method cddcdone = bwCDDCDONE._write;
         method drdy     = bwDRDY._write;
         method d_o      = bwDO._write;
         method locked   = bwLocked._write;

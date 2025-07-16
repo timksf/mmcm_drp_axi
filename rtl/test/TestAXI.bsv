@@ -41,6 +41,12 @@ module [Module] mkTestAXI(TestHandler);
     mmcm_cfg.p_CLKIN2_PERIOD    = 10.0;
     mmcm_cfg.p_IS_RST_INVERTED  = 1;
     mmcm_cfg.p_CLKOUT0_DIVIDE_F = 2.0;
+    mmcm_cfg.p_CLKOUT1_DIVIDE   = 15;
+    mmcm_cfg.p_CLKOUT2_DIVIDE   = 15;
+    mmcm_cfg.p_CLKOUT3_DIVIDE   = 15;
+    mmcm_cfg.p_CLKOUT4_DIVIDE   = 15;
+    mmcm_cfg.p_CLKOUT5_DIVIDE   = 15;
+    mmcm_cfg.p_CLKOUT6_DIVIDE   = 15;
 
     AXI4_Lite_Master_Rd#(12, 32) m_rd <- mkAXI4_Lite_Master_Rd(1, clocked_by clk_200MHz, reset_by rst_200);
     AXI4_Lite_Master_Wr#(12, 32) m_wr <- mkAXI4_Lite_Master_Wr(1, clocked_by clk_200MHz, reset_by rst_200);
@@ -53,7 +59,7 @@ module [Module] mkTestAXI(TestHandler);
     Reg#(Bool)                  rDone   <- mkReg(False, clocked_by clk_200MHz, reset_by rst_200);
     MMCM_DRP_AXI_ifc#(12, 32)   dut     <- mkMMCM4E_DRP_AXI(mmcm_cfg, clocked_by clk_200MHz, reset_by rst_200);
 
-    // ClockTester_ifc clk_test <- mkClockTester(1000, dut.clks[1], clocked_by clk_200MHz, reset_by rst_200);
+    ClockTester_ifc clk_test <- mkClockTester(1000, dut.clks[1], clocked_by clk_200MHz, reset_by rst_200);
     
     mkConnection(dut.fab_config_rd, m_rd.fab, clocked_by clk_200MHz, reset_by rst_200);
     mkConnection(dut.fab_config_wr, m_wr.fab, clocked_by clk_200MHz, reset_by rst_200);
@@ -81,7 +87,7 @@ module [Module] mkTestAXI(TestHandler);
             print_s("Starting DRP AXI simulation", YELLOW);
             axi4l_write_reg(m_wr, fromInteger(cfg_clksel_offs), 1);
             axi4l_write_reg(m_wr, fromInteger(cfg_clkdiv_offs), 32);
-            axi4l_write_reg(m_wr, fromInteger(cfg_ctrl_offs), 1 << cfg_apply_bit_offs);
+            axi4l_write_reg(m_wr, fromInteger(cfg_ctrl_offs), 1 << cfg_apply_bit_offs | 1 << cfg_cddc_en_bit_offs);
             while(!rDone) seq
                 axi4_lite_read(m_rd, fromInteger(cfg_stat_offs));
                 action
@@ -95,9 +101,9 @@ module [Module] mkTestAXI(TestHandler);
                 await(dut.clks_rdy[1]);
                 print_s("CLK1 ready again", GREEN);
             endaction
-            // clk_test.restart();
-            // delay(30); //have to wait for at least a cycle of the slow clock
-            // $write("Freq: "); print_freq(clk_test.f_slow()); $display();
+            clk_test.restart();
+            delay(30); //have to wait for at least a cycle of the slow clock
+            $write("Freq: "); print_freq(clk_test.f_slow()); $display();
         endseq
     };
 

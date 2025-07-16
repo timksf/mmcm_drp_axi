@@ -51,6 +51,9 @@ module vMkClockTester#(Clock clk_slow)(VClockTester_ifc);
     //inputs methods
     method restart() enable(restart) clocked_by(clk_fast) reset_by(rst);
 
+    schedule restart C restart;
+
+    schedule (ht, lt) CF restart;
     schedule ht CF lt;
     schedule ht CF ht;
     schedule lt CF lt;
@@ -62,7 +65,7 @@ module mkClockTester#(Integer fast_period, Clock clk_slow)(ClockTester_ifc);
     Double f_fast = 1 / int_to_double(fromInteger(fast_period));
 
     Clock clk_fast <- mkAbsoluteClock(0, fast_period);
-    Reset rst_fast <- mkSyncResetFromCR(1, clk_fast);
+    Reset rst_fast <- mkAsyncResetFromCR(1, clk_fast);
 
     (* hide *)
     VClockTester_ifc _int <- vMkClockTester(clk_slow, clocked_by clk_fast, reset_by rst_fast);

@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.118 (w)1999-2023 BSI
-[*] Sat Jul 12 12:36:04 2025
+[*] Wed Jul 16 18:49:38 2025
 [*]
 [dumpfile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/build/dump.vcd"
-[dumpfile_mtime] "Sat Jul 12 12:33:14 2025"
-[dumpfile_size] 18783970
+[dumpfile_mtime] "Wed Jul 16 18:47:38 2025"
+[dumpfile_size] 34265541
 [savefile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/test/gtkw/view_mmcm_axi.gtkw"
-[timestart] 2880400
+[timestart] 0
 [size] 2560 1393
 [pos] -1 -1
-*-14.399999 3075000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-19.499998 2988000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] main.
 [treeopen] main.top.
 [treeopen] main.top.test.

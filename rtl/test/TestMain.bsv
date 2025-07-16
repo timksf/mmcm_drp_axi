@@ -66,7 +66,9 @@ module [Module] mkTestMain(TestHandler);
     mkConnection(toGet(drp_fsm.mmcm_fab.den),   toPut(mmcm.den));
     mkConnection(toGet(drp_fsm.mmcm_fab.daddr), toPut(mmcm.daddr));
     mkConnection(toGet(drp_fsm.mmcm_fab.d_i),   toPut(mmcm.d_i));
+    mkConnection(toGet(drp_fsm.mmcm_fab.cddcreq),   toPut(mmcm.cddcreq));
     //MMCM -> DUT
+    mkConnection(toGet(mmcm.cddcdone),              toPut(drp_fsm.mmcm_fab.cddcdone));
     mkConnection(toGet(mmcm.drdy),              toPut(drp_fsm.mmcm_fab.drdy));
     mkConnection(toGet(mmcm.d_o),               toPut(drp_fsm.mmcm_fab.d_o));
     mkConnection(toGet(mmcm.locked),            toPut(drp_fsm.mmcm_fab.locked));
@@ -80,7 +82,8 @@ module [Module] mkTestMain(TestHandler);
             drp_fsm.set_drp_register(DRP_Request { 
                 addr: 'h0B,                 //ClkReg2 for clkout1
                 data:  0,                   //enable counter
-                mask: 'hFB00                //retain counter enable bit
+                mask: 'hFB00,               //retain counter enable bit
+                cddc: False
             });
             print_s("Setting 0xB", YELLOW);
             endaction
@@ -88,7 +91,8 @@ module [Module] mkTestMain(TestHandler);
             drp_fsm.set_drp_register(DRP_Request { 
                 addr: 'h0A,                 //ClkReg1 for clkout1
                 data: ('h20 << 6) | 'h20,   //set divider to 32+32=64
-                mask: 'h1000                //retain counter enable bit
+                mask: 'h1000,               //retain counter enable bit
+                cddc: False
             });
             print_s("Setting 0xA", YELLOW);
             endaction
@@ -109,7 +113,6 @@ module [Module] mkTestMain(TestHandler);
 
     //tieoff unused signals
     rule tieoff;
-        mmcm.cddcreq(0);
         mmcm.clkinsel(1);
         mmcm.psen(0);
         mmcm.psincdec(0);

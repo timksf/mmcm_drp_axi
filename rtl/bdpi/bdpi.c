@@ -22,7 +22,7 @@ void c_print_freq(uint64_t bits) {
         (y.d < 1e6)     ? "K": 
         (y.d < 1e9)     ? "M": 
         (y.d < 1e12)    ? "G" : "";
-    printf("%.0f %sHz", y.d / mag, u);
+    printf("%.2f %sHz", y.d / mag, u);
 }
 
 void c_print_double(uint64_t bits, int digits) {

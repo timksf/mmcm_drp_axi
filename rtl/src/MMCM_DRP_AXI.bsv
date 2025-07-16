@@ -11,6 +11,7 @@ import BUFGCE :: *;
 import BUFG :: *;
 import MMCME4_ADV :: *;
 import MMCM_DRP_FSM :: *;
+import SyncBitExt :: *;
 
 typedef 7 NUM_CLOCKS;
 typedef 7 DRP_ADDR_WIDTH;
@@ -29,9 +30,10 @@ Integer cfg_clksel_offs = 'h08;
 Integer cfg_clkdiv_offs = 'h0C;
 
 //bit offsets
-//command register
-Integer cfg_srst_bit_offs = 0;
-Integer cfg_apply_bit_offs = 1; //apply settings to mmcm over DRP
+//command&ctrl register
+Integer cfg_srst_bit_offs       = 0;
+Integer cfg_apply_bit_offs      = 1; //apply settings to mmcm over DRP
+Integer cfg_cddc_en_bit_offs    = 2;
 
 //status register
 Integer cfg_done_bit_offs = 0;
@@ -46,6 +48,7 @@ interface MMCM_DRP_AXI_Cfg_ifc;
 
     interface ReadOnly#(Bool) srst;
     interface ReadOnly#(Bool) apply;
+    interface ReadOnly#(Bool) cddc_en;
 
 endinterface
 
@@ -96,6 +99,10 @@ module [ConfigCtx#(12, 32)] mmcm_drp_axi_cfg(MMCM_DRP_AXI_Cfg_ifc);
         method _read = unpack(rCmd[cfg_apply_bit_offs]);
     endinterface
 
+    interface ReadOnly cddc_en;
+        method _read = unpack(rCmd[cfg_cddc_en_bit_offs]);
+    endinterface
+
 
 endmodule
 
@@ -117,7 +124,8 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
     Reg#(Bit#(3))                   rClkSel     <- mkRegU;
     Reg#(Bit#(8))                   rClkDiv     <- mkRegU;
     Reg#(Bit#(DRP_ADDR_WIDTH))      rAddr       <- mkRegU;
-    Vector#(NUM_CLOCKS, Reg#(Bool)) vClockEn    <- replicateM(mkReg(False));
+    // Vector#(NUM_CLOCKS, Reg#(Bool)) vClockEn    <- replicateM(mkRegU);
+    Vector#(NUM_CLOCKS, Reg#(Bool)) vClockEnS   = newVector;
     
     IntExtConfig_ifc#(12, 32, MMCM_DRP_AXI_Cfg_ifc)     config_ <- axi4LiteConfigFromContext(mmcm_drp_axi_cfg);
     MMCM_DRP_FSM_ifc#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH)   drp_fsm <- mkMMCM4E_DRP_FSM();
@@ -127,7 +135,7 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
     Vector#(NUM_CLOCKS, BUFGCE_ifc)  vBUFGCE        = newVector;
     Vector#(NUM_CLOCKS, Clock)       mmcm_clks      = newVector;
     Vector#(NUM_CLOCKS, Clock)       clks_out       = newVector;
-    Vector#(NUM_CLOCKS, Wire#(Bool)) clks_out_rdy   <- replicateM(mkBypassWire);
+    Vector#(NUM_CLOCKS, Wire#(Bool)) clks_out_rdy   = newVector;
 
     mmcm_clks[0] = mmcm.clkout0;
     mmcm_clks[1] = mmcm.clkout1;
@@ -138,37 +146,40 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
     mmcm_clks[6] = mmcm.clkout6;
 
     //DRP FSM -> MMCM
-    mkConnection(toGet(drp_fsm.mmcm_fab.dwe),   toPut(mmcm.dwe));
-    mkConnection(toGet(drp_fsm.mmcm_fab.den),   toPut(mmcm.den));
-    mkConnection(toGet(drp_fsm.mmcm_fab.daddr), toPut(mmcm.daddr));
-    mkConnection(toGet(drp_fsm.mmcm_fab.d_i),   toPut(mmcm.d_i));
+    mkConnection(toGet(drp_fsm.mmcm_fab.dwe),       toPut(mmcm.dwe));
+    mkConnection(toGet(drp_fsm.mmcm_fab.den),       toPut(mmcm.den));
+    mkConnection(toGet(drp_fsm.mmcm_fab.daddr),     toPut(mmcm.daddr));
+    mkConnection(toGet(drp_fsm.mmcm_fab.d_i),       toPut(mmcm.d_i));
+    mkConnection(toGet(drp_fsm.mmcm_fab.cddcreq),   toPut(mmcm.cddcreq));
     //DRP FSM -> DUT
-    mkConnection(toGet(mmcm.drdy),              toPut(drp_fsm.mmcm_fab.drdy));
-    mkConnection(toGet(mmcm.d_o),               toPut(drp_fsm.mmcm_fab.d_o));
-    mkConnection(toGet(mmcm.locked),            toPut(drp_fsm.mmcm_fab.locked));
+    mkConnection(toGet(mmcm.cddcdone),              toPut(drp_fsm.mmcm_fab.cddcdone));
+    mkConnection(toGet(mmcm.drdy),                  toPut(drp_fsm.mmcm_fab.drdy));
+    mkConnection(toGet(mmcm.d_o),                   toPut(drp_fsm.mmcm_fab.d_o));
+    mkConnection(toGet(mmcm.locked),                toPut(drp_fsm.mmcm_fab.locked));
 
     for(Integer i = 0; i < valueof(NUM_CLOCKS); i = i + 1) begin
-        vBUFGCE[i] <- mkBUFGCE(defaultValue, clocked_by mmcm_clks[i]);
+        vClockEnS[i] <- mkSyncBitWrapperFromCC(mmcm_clks[i]);
+        vBUFGCE[i] <- mkBUFGCE(defaultValue, vClockEnS[i], clocked_by mmcm_clks[i]);
         clks_out[i] = vBUFGCE[i].clk_out;
 
-        //ToDo adjust for CDDC
+        //ToDo adjust for CDDC 
+        Bool clk_en = !drp_fsm.running || (config_.device_ifc.cddc_en && rClkSel != fromInteger(i));
+
+        //ToDo... the ready signals should probably be in the respective output clock domains
+        // clks_out_rdy <- mkNullCrossingWire(clks_out[i], );
+        clks_out_rdy[i] <- mkBypassWire;
+
         rule rclk_en;
-            vClockEn[i] <= !drp_fsm.running; //|| (cddc_en && sel!=i)
+            vClockEnS[i] <= clk_en;
         endrule
 
         rule rclk_rdy;
-            clks_out_rdy[i] <= vClockEn[i] && unpack(mmcm.locked);
-        endrule
-
-        (* fire_when_enabled *)
-        rule rclk_gate;
-            vBUFGCE[i].set_gate(vClockEn[i]);
+            clks_out_rdy[i] <= clk_en && unpack(mmcm.locked);
         endrule
     end
 
     //tieoff unused mmcm signals
     rule tieoff;
-        mmcm.cddcreq(0);
         mmcm.clkinsel(1);
         mmcm.psen(0);
         mmcm.psincdec(0);
@@ -200,7 +211,8 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
         DRP_Request#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) req = DRP_Request { 
             addr: rAddr,
             data: zeroExtend(htime) << 6 | zeroExtend(ltime),
-            mask: 'h1000 
+            mask: 'h1000,
+            cddc: config_.device_ifc.cddc_en()
         };
         drp_fsm.set_drp_register(req); //this will only fire when the DRP FSM is ready
         rAddr <= rAddr + 1;
@@ -213,7 +225,9 @@ module [Module] mkMMCM_DRP_AXI#(MMCME4_ADV_Config mmcm_cfg)(MMCM_DRP_AXI_ifc#(aw
         DRP_Request#(DRP_ADDR_WIDTH, DRP_DATA_WIDTH) req = DRP_Request { 
             addr: rAddr,
             data: zeroExtend(edge_) << 7 | zeroExtend(no_count) << 6,
-            mask: 'hFB00 
+            mask: 'hFB00,
+            //ToDo make sure cddc_en does not change between reg0 and reg1 accesses
+            cddc: config_.device_ifc.cddc_en()
         };
         drp_fsm.set_drp_register(req);
         rState <= WAIT_DONE;
