@@ -87,7 +87,7 @@ module [Module] mkTestAXI(TestHandler);
             print_s("Starting DRP AXI simulation", YELLOW);
             axi4l_write_reg(m_wr, fromInteger(cfg_clksel_offs), 1);
             axi4l_write_reg(m_wr, fromInteger(cfg_clkdiv_offs), 32);
-            axi4l_write_reg(m_wr, fromInteger(cfg_ctrl_offs), 1 << cfg_apply_bit_offs | 1 << cfg_cddc_en_bit_offs);
+            axi4l_write_reg(m_wr, fromInteger(cfg_ctrl_offs), 1 << cfg_apply_bit_offs | 0 << cfg_cddc_en_bit_offs);
             while(!rDone) seq
                 axi4_lite_read(m_rd, fromInteger(cfg_stat_offs));
                 action

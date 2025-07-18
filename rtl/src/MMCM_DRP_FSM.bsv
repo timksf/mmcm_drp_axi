@@ -145,10 +145,10 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
             rCDDCREQ <= fRequests.notEmpty ? 1 : 0;
             rState <= fRequests.notEmpty ? WAIT_SEN : rDRPReq.cddc ? WAIT_WDRDY : WAIT_LOCK;
             rDone <= !fRequests.notEmpty && !rDRPReq.cddc;
-        end else if(bwCDDCDONE == 1) begin
+        end else if(rDRPReq.cddc && bwCDDCDONE == 1) begin
             //cddcdone is asserted after drdy
             rState <= fRequests.notEmpty ? WAIT_SEN : WAIT_LOCK;
-            rDone <= !fRequests.notEmpty && rDRPReq.cddc;
+            rDone <= !fRequests.notEmpty;
         end
     endrule
 

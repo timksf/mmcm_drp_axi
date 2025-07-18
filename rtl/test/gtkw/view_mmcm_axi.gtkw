@@ -1,23 +1,24 @@
 [*]
 [*] GTKWave Analyzer v3.3.118 (w)1999-2023 BSI
-[*] Wed Jul 16 18:49:38 2025
+[*] Wed Jul 16 20:45:32 2025
 [*]
 [dumpfile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/build/dump.vcd"
-[dumpfile_mtime] "Wed Jul 16 18:47:38 2025"
-[dumpfile_size] 34265541
+[dumpfile_mtime] "Wed Jul 16 20:45:16 2025"
+[dumpfile_size] 34334557
 [savefile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/test/gtkw/view_mmcm_axi.gtkw"
-[timestart] 0
+[timestart] 2841600
 [size] 2560 1393
 [pos] -1 -1
-*-19.499998 2988000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-14.999998 2969000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] main.
 [treeopen] main.top.
 [treeopen] main.top.test.
 [treeopen] main.top.test.dut_drp_fsm.
+[treeopen] main.top.test.dut_vBUFGCE_1.
 [sst_width] 418
 [signals_width] 318
 [sst_expanded] 1
-[sst_vpaned_height] 750
+[sst_vpaned_height] 749
 @28
 main.top.test.CLK
 main.top.test.\m_wr_awreadyIn$wget
@@ -51,7 +52,6 @@ main.top.test.\m_rd_rdataIn$wget[31:0]
 @200
 -DRP FSM
 @28
-main.top.test.dut_drp_fsm.rDone
 main.top.test.dut_drp_fsm.CLK_mmcm_fab_dclk
 main.top.test.dut_drp_fsm.RST_N_mmcm_fab_rst
 main.top.test.dut_drp_fsm.mmcm_fab_dwe
@@ -64,8 +64,30 @@ main.top.test.dut_drp_fsm.mmcm_fab_drdy_d
 @22
 main.top.test.dut_drp_fsm.mmcm_fab_d_o_d[15:0]
 @28
+main.top.test.\dut_mmcm$CDDCREQ
+main.top.test.\dut_mmcm$CDDCDONE
+main.top.test.dut_drp_fsm.rDone
 main.top.test.dut_drp_fsm.mmcm_fab_locked_l
 @22
 main.top.test.dut_drp_fsm.rState[3:0]
+@29
+main.top.test.dut_drp_fsm.\fRequests_ff$EMPTY_N
+@22
+main.top.test.dut_drp_fsm.rDRPReq[39:0]
+@28
+main.top.test.dut_vBUFGCE_0.O
+main.top.test.dut_vBUFGCE_1.O
+main.top.test.dut_vBUFGCE_2.O
+main.top.test.dut_vBUFGCE_3.O
+main.top.test.dut_vBUFGCE_4.O
+main.top.test.dut_vBUFGCE_5.O
+main.top.test.dut_vBUFGCE_6.O
+main.top.test.\dut_clks_out_rdy_0$wget
+main.top.test.\dut_clks_out_rdy_1$wget
+main.top.test.\dut_clks_out_rdy_2$wget
+main.top.test.\dut_clks_out_rdy_3$wget
+main.top.test.\dut_clks_out_rdy_4$wget
+main.top.test.\dut_clks_out_rdy_6$wget
+main.top.test.\dut_clks_out_rdy_5$wget
 [pattern_trace] 1
 [pattern_trace] 0
