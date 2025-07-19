@@ -12,7 +12,6 @@ import TestImport :: *;
 import TestMain :: *;
 import TestFSM :: *;
 import TestAXI :: *;
-import TestMRE :: *;
 
 (* synthesize *)
 module [Module] mkTestbench();

@@ -10,7 +10,7 @@ typedef struct {
     Bit#(dw) data;  
     Bit#(dw) mask;
     Bool     cddc;
-} DRP_Request#(numeric type aw, numeric type dw) deriving(Bits);
+} DRP_Request#(numeric type aw, numeric type dw) deriving(FShow, Bits);
 
 typedef enum {
     RESTART,
@@ -82,14 +82,32 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
     Reg#(Bit#(dw))                  rDI         <- mkRegU;
     Reg#(Bit#(1))                   rCDDCREQ    <- mkRegU;
 
-    //always assert mmcm reset during DRP access
-    //keep reset asserted for back-to-back DRP requests
-    rule r_rst_mmcm ((rState != WAIT_SEN || (fRequests.notEmpty() && !fRequests.first.cddc)) && rState != WAIT_LOCK && !rDRPReq.cddc);
-        rst_mmcm.assertReset();
+    rule r_rst_mmcm;
+        /*
+            this rule requires -aggressive-conditions so that it fires even when no requests are available.
+            Do not reset when waiting for the lock signal as this is only asserted after reset is released.
+            Do not reset when waiting for new requests and none is currently being enqueued.
+            Do not reset when waiting for new requests and one with CDDC enabled is enqueued.
+            Do not reset at all when CDDC is enabled in the current request.
+        */
+        case(rState)
+            WAIT_LOCK: noAction;
+            WAIT_SEN:
+                if(fRequests.notEmpty()) begin
+                    if(!fRequests.first.cddc) begin
+                        rst_mmcm.assertReset();
+                    end
+                end
+            default: 
+                if(!rDRPReq.cddc)
+                    rst_mmcm.assertReset();
+        endcase
+
     endrule
 
     rule r_restart (rState == RESTART);
         rState <= WAIT_LOCK;
+        rCDDCREQ <= 0;
     endrule
 
     rule r_wait_lock (rState == WAIT_LOCK);
@@ -98,13 +116,13 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
     endrule
 
     rule r_wait_sen (rState == WAIT_SEN);
-        //since we use a bypass fifo, this state is still single cycle
+        //since we use a bypass fifo, this state is still single cycle with the request interface
         rDRPReq <= fRequests.first;
-        fRequests.deq;
         rState <= READ;
     endrule
 
     rule r_read (rState == READ);
+        fRequests.deq;
         rDEN <= 1;
         rCDDCREQ <= rDRPReq.cddc ? 1 : 0;
         rDAddr <= rDRPReq.addr;
@@ -142,11 +160,12 @@ module mkMMCM_DRP_FSM(MMCM_DRP_FSM_ifc#(aw, dw));
         rDWE <= 0;
         if(bwDRDY == 1) begin
             //only done when requests empty
-            rCDDCREQ <= fRequests.notEmpty ? 1 : 0;
             rState <= fRequests.notEmpty ? WAIT_SEN : rDRPReq.cddc ? WAIT_WDRDY : WAIT_LOCK;
             rDone <= !fRequests.notEmpty && !rDRPReq.cddc;
+            rCDDCREQ <= rDRPReq.cddc && fRequests.notEmpty ? 1 : 0;
         end else if(rDRPReq.cddc && bwCDDCDONE == 1) begin
             //cddcdone is asserted after drdy
+            rCDDCREQ <= fRequests.notEmpty ? 1 : 0;
             rState <= fRequests.notEmpty ? WAIT_SEN : WAIT_LOCK;
             rDone <= !fRequests.notEmpty;
         end

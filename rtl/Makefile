@@ -30,7 +30,7 @@ endif
 
 # Default flags
 EXTRA_FLAGS=-D "TESTNAME=mk$(RUN_TEST)"
-EXTRA_FLAGS+=-show-schedule -D "BSV_TIMESCALE=1ps/1ps" -keep-inlined-boundaries
+EXTRA_FLAGS+=-show-schedule -D "BSV_TIMESCALE=1ps/1ps" -keep-inlined-boundaries -aggressive-conditions
 #-keep-fires 
 
 ###
@@ -64,7 +64,7 @@ endif
 # CONSTRAINT_FILES += "$(CURDIR)/constraints/custom.xdc,LATE"
 
 VERILOG_SIM:=iverilog
-VERILOG_INC:=$(CURDIR)/../lib/unisim:$(CURDIR)/../lib:$(CURDIR)/test/
+VERILOG_INC:=$(CURDIR)/../lib/unisims:$(CURDIR)/../lib:$(CURDIR)/test/
 
 # Do not change: Load libraries such as BlueAXI or BlueLib
 ifneq ("$(wildcard $(CURDIR)/libraries/*/*.mk)", "")

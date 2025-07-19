@@ -1,24 +1,24 @@
 [*]
 [*] GTKWave Analyzer v3.3.118 (w)1999-2023 BSI
-[*] Wed Jul 16 20:45:32 2025
+[*] Sat Jul 19 18:47:40 2025
 [*]
-[dumpfile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/build/dump.vcd"
-[dumpfile_mtime] "Wed Jul 16 20:45:16 2025"
-[dumpfile_size] 34334557
-[savefile] "/home/tim/Documents/HardwareDescription/MMCM_DRP_AXI/rtl/test/gtkw/view_mmcm_axi.gtkw"
-[timestart] 2841600
-[size] 2560 1393
+[dumpfile] "/home/tim/Documents/mmcm_drp_axi/rtl/build/dump.vcd"
+[dumpfile_mtime] "Sat Jul 19 18:46:08 2025"
+[dumpfile_size] 18576093
+[savefile] "/home/tim/Documents/mmcm_drp_axi/rtl/test/gtkw/view_mmcm_axi.gtkw"
+[timestart] 0
+[size] 1500 921
 [pos] -1 -1
-*-14.999998 2969000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-20.699997 3015000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] main.
 [treeopen] main.top.
 [treeopen] main.top.test.
 [treeopen] main.top.test.dut_drp_fsm.
 [treeopen] main.top.test.dut_vBUFGCE_1.
-[sst_width] 418
+[sst_width] 303
 [signals_width] 318
 [sst_expanded] 1
-[sst_vpaned_height] 749
+[sst_vpaned_height] 464
 @28
 main.top.test.CLK
 main.top.test.\m_wr_awreadyIn$wget
@@ -49,8 +49,17 @@ main.top.test.\m_rd_rvalidIn$wget
 main.top.test.\dut_config__slave_rd_rreadyIn$wget
 @22
 main.top.test.\m_rd_rdataIn$wget[31:0]
+main.top.test.dut_config__rCmd[31:0]
 @200
 -DRP FSM
+@28
+main.top.test.dut_drp_fsm.rCDDCREQ
+main.top.test.dut_drp_fsm.EN_set_drp_register
+main.top.test.dut_drp_fsm.\fRequests_ff$EMPTY_N
+@29
+main.top.test.dut_drp_fsm.\rst_mmcm$ASSERT_IN
+@22
+main.top.test.dut_drp_fsm.rDRPReq[39:0]
 @28
 main.top.test.dut_drp_fsm.CLK_mmcm_fab_dclk
 main.top.test.dut_drp_fsm.RST_N_mmcm_fab_rst
@@ -68,9 +77,10 @@ main.top.test.\dut_mmcm$CDDCREQ
 main.top.test.\dut_mmcm$CDDCDONE
 main.top.test.dut_drp_fsm.rDone
 main.top.test.dut_drp_fsm.mmcm_fab_locked_l
-@22
+@2022
+^1 /home/tim/Documents/mmcm_drp_axi/rtl/test/gtkw/DRP_FSM_State_t.txt
 main.top.test.dut_drp_fsm.rState[3:0]
-@29
+@28
 main.top.test.dut_drp_fsm.\fRequests_ff$EMPTY_N
 @22
 main.top.test.dut_drp_fsm.rDRPReq[39:0]
