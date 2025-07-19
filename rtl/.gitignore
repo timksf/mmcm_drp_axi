@@ -1,5 +1,5 @@
 .deps
 .bsv_tools
-.direnv
+.direnv/*
 build
 *.o
